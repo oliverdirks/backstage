@@ -15,6 +15,17 @@
  */
 
 import { JsonValue } from '@backstage/types';
+import { SchedulerServiceTaskDescriptor } from '@backstage/backend-plugin-api';
+
+/** @public */
+export type ScheduledTaskPluginConfig = {
+  plugin: string;
+  tasks?: string[];
+};
+
+export type ScheduledTask = SchedulerServiceTaskDescriptor & {
+  pluginId: string;
+};
 
 /** @public */
 export type Endpoint = {

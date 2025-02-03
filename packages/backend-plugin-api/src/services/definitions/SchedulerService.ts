@@ -49,7 +49,11 @@ export type SchedulerServiceTaskDescriptor = {
    * that is mainly there for debugging purposes. Do not make any assumptions
    * about the contents of this field.
    */
-  settings: { version: number } & JsonObject;
+  nextRunAt?: string;
+  running?: boolean;
+  settings: {
+    version: number;
+  } & JsonObject;
 };
 
 /**

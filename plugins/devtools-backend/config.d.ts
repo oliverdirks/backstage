@@ -50,5 +50,18 @@ export interface Config {
        */
       packagePrefixes?: string[];
     };
+    /**
+     * Scheduled tasks configuration
+     */
+    scheduledTasks?: Array<{
+      /**
+       * id of the plugin that will be used to read / run scheduled-tasks
+       */
+      plugin: string;
+      /**
+       * The list of tasks that will be visible if not every task should be accessible
+       */
+      tasks?: string[];
+    }>;
   };
 }

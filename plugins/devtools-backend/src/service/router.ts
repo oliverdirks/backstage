@@ -20,6 +20,8 @@ import {
   devToolsExternalDependenciesReadPermission,
   devToolsInfoReadPermission,
   devToolsPermissions,
+  devToolsScheduledTasksReadPermission,
+  devToolsScheduledTasksUpdatePermission,
 } from '@backstage/plugin-devtools-common';
 import { DevToolsBackendApi } from '../api';
 import { NotAllowedError } from '@backstage/errors';
@@ -27,6 +29,7 @@ import Router from 'express-promise-router';
 import express from 'express';
 import { createPermissionIntegrationRouter } from '@backstage/plugin-permission-node';
 import {
+  AuthService,
   DiscoveryService,
   HttpAuthService,
   LoggerService,
@@ -43,6 +46,7 @@ export interface RouterOptions {
   config: RootConfigService;
   permissions: PermissionsService;
   discovery: DiscoveryService;
+  auth: AuthService;
   httpAuth: HttpAuthService;
 }
 
@@ -52,10 +56,11 @@ export interface RouterOptions {
 export async function createRouter(
   options: RouterOptions,
 ): Promise<express.Router> {
-  const { logger, config, permissions, httpAuth } = options;
+  const { logger, config, permissions, discovery, httpAuth, auth } = options;
 
   const devToolsBackendApi =
-    options.devToolsBackendApi || new DevToolsBackendApi(logger, config);
+    options.devToolsBackendApi ||
+    new DevToolsBackendApi(logger, config, discovery, auth);
 
   const router = Router();
   router.use(express.json());
@@ -119,6 +124,44 @@ export async function createRouter(
 
     response.status(200).json(health);
   });
+
+  router.get('/scheduled-tasks', async (req, response) => {
+    const decision = (
+      await permissions.authorize(
+        [{ permission: devToolsScheduledTasksReadPermission }],
+        { credentials: await httpAuth.credentials(req) },
+      )
+    )[0];
+    if (decision.result === AuthorizeResult.DENY) {
+      throw new NotAllowedError('Unauthorized');
+    }
+
+    const scheduledTasks = await devToolsBackendApi.listScheduledTasks();
+
+    response.status(200).json(scheduledTasks);
+  });
+
+  router.post(
+    '/scheduled-tasks/plugin/:pluginId/task/:taskId',
+    async (req, response) => {
+      const decision = (
+        await permissions.authorize(
+          [{ permission: devToolsScheduledTasksUpdatePermission }],
+          { credentials: await httpAuth.credentials(req) },
+        )
+      )[0];
+      if (decision.result === AuthorizeResult.DENY) {
+        throw new NotAllowedError('Unauthorized');
+      }
+
+      await devToolsBackendApi.triggerScheduledTask(
+        req.params.pluginId,
+        req.params.taskId,
+      );
+
+      response.status(202).send();
+    },
+  );
 
   return router;
 }

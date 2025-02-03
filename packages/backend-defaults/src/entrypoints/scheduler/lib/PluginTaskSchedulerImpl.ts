@@ -31,6 +31,7 @@ import { LocalTaskWorker } from './LocalTaskWorker';
 import { TaskWorker } from './TaskWorker';
 import { TaskSettingsV2 } from './types';
 import { delegateAbortController, TRACER_ID, validateId } from './util';
+import { DB_TASKS_TABLE, DbTasksRow } from '../database/tables.ts';
 
 const tracer = trace.getTracer(TRACER_ID);
 
@@ -144,7 +145,30 @@ export class PluginTaskSchedulerImpl implements SchedulerService {
   }
 
   async getScheduledTasks(): Promise<SchedulerServiceTaskDescriptor[]> {
-    return this.allScheduledTasks;
+    const knex = await this.databaseFactory();
+    const tasks: SchedulerServiceTaskDescriptor[] = [];
+    for (const task of this.allScheduledTasks) {
+      if (task.scope === 'global') {
+        const dbTaskRow = await knex<DbTasksRow>(DB_TASKS_TABLE)
+          .select('next_run_start_at', 'current_run_ticket')
+          .where({ id: task.id })
+          .first();
+        if (dbTaskRow) {
+          tasks.push({
+            ...task,
+            running: dbTaskRow.current_run_ticket !== null,
+            nextRunAt: new Date(
+              `${dbTaskRow.next_run_start_at}Z`,
+            ).toISOString(),
+          });
+        } else {
+          tasks.push(task);
+        }
+      } else {
+        tasks.push(task);
+      }
+    }
+    return tasks;
   }
 
   private instrumentedFunction(

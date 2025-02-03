@@ -23,6 +23,8 @@ import {
   ExternalDependency,
   ExternalDependencyStatus,
   PackageDependency,
+  ScheduledTask,
+  ScheduledTaskPluginConfig,
 } from '@backstage/plugin-devtools-common';
 import { JsonObject } from '@backstage/types';
 import { findPaths } from '@backstage/cli-common';
@@ -33,14 +35,81 @@ import fs from 'fs-extra';
 import { Lockfile } from '../util/Lockfile';
 import { memoize } from 'lodash';
 import { assertError } from '@backstage/errors';
-import { LoggerService } from '@backstage/backend-plugin-api';
+import {
+  AuthService,
+  DiscoveryService,
+  LoggerService,
+} from '@backstage/backend-plugin-api';
 
 /** @public */
 export class DevToolsBackendApi {
   public constructor(
     private readonly logger: LoggerService,
     private readonly config: Config,
+    private readonly discovery: DiscoveryService,
+    private readonly auth: AuthService,
   ) {}
+
+  public async listScheduledTasks(): Promise<ScheduledTask[]> {
+    const scheduledTasks: ScheduledTask[] = [];
+    const scheduledTasksConfigs = this.config.getOptional<
+      ScheduledTaskPluginConfig[]
+    >('devTools.scheduledTasks');
+    if (!scheduledTasksConfigs) {
+      return scheduledTasks;
+    }
+
+    for (const scheduledTasksConfig of scheduledTasksConfigs) {
+      const tasksFromConfig = scheduledTasksConfig.tasks ?? [];
+      const scheduledTasksFromPlugin = await this.listPluginScheduledTasks(
+        scheduledTasksConfig.plugin,
+      );
+
+      if (tasksFromConfig.length === 0) {
+        scheduledTasks.push(
+          ...scheduledTasksFromPlugin.map(task => ({
+            ...task,
+            pluginId: scheduledTasksConfig.plugin,
+          })),
+        );
+      } else {
+        scheduledTasks.push(
+          ...scheduledTasksFromPlugin.filter(task =>
+            tasksFromConfig.includes(task.id),
+          ),
+        );
+      }
+    }
+    return scheduledTasks;
+  }
+
+  public async triggerScheduledTask(
+    pluginId: string,
+    taskId: string,
+  ): Promise<void> {
+    const basePluginUrl = await this.discovery.getExternalBaseUrl(pluginId);
+    const { token } = await this.auth.getPluginRequestToken({
+      onBehalfOf: await this.auth.getOwnServiceCredentials(),
+      targetPluginId: pluginId,
+    });
+    this.logger.info(`Triggering task ${taskId} in plugin ${pluginId}`);
+    fetch(`${basePluginUrl}/.backstage/scheduler/v1/tasks/${taskId}`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+        'content-type': 'application/json',
+      },
+    })
+      .then(res => {
+        if (res.ok) {
+          return;
+        }
+        throw new Error(`Failed to fetch tasks from plugin: ${res.statusText}`);
+      })
+      .catch(err => {
+        this.logger.error('Failed to fetch', err);
+      });
+  }
 
   public async listExternalDependencyDetails(): Promise<ExternalDependency[]> {
     const result: ExternalDependency[] = [];
@@ -106,6 +175,35 @@ export class DevToolsBackendApi {
     };
 
     return result;
+  }
+
+  private async listPluginScheduledTasks(
+    pluginId: string,
+  ): Promise<ScheduledTask[]> {
+    const basePluginUrl = await this.discovery.getExternalBaseUrl(pluginId);
+    const { token } = await this.auth.getPluginRequestToken({
+      onBehalfOf: await this.auth.getOwnServiceCredentials(),
+      targetPluginId: pluginId,
+    });
+    const pluginTasks = fetch(
+      `${basePluginUrl}/.backstage/scheduler/v1/tasks`,
+      {
+        headers: {
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+          'content-type': 'application/json',
+        },
+      },
+    )
+      .then(res => {
+        if (res.ok) {
+          return res.json();
+        }
+        throw new Error(`Failed to fetch tasks from plugin: ${res.statusText}`);
+      })
+      .catch(err => {
+        this.logger.error('Failed to fetch', err);
+      });
+    return (await pluginTasks).items as Promise<ScheduledTask[]>;
   }
 
   private async pingExternalDependency(

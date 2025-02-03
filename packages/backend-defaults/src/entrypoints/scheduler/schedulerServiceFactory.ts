@@ -19,6 +19,7 @@ import {
   createServiceFactory,
 } from '@backstage/backend-plugin-api';
 import { DefaultSchedulerService } from './lib/DefaultSchedulerService';
+import { createRouter } from './lib/PluginTaskSchedulerRouter';
 
 /**
  * Scheduling of distributed background tasks.
@@ -35,8 +36,20 @@ export const schedulerServiceFactory = createServiceFactory({
     database: coreServices.database,
     logger: coreServices.logger,
     rootLifecycle: coreServices.rootLifecycle,
+    httpRouter: coreServices.httpRouter,
   },
-  async factory({ database, logger, rootLifecycle }) {
-    return DefaultSchedulerService.create({ database, logger, rootLifecycle });
+  async factory({ database, logger, rootLifecycle, httpRouter }) {
+    const schedulerService = DefaultSchedulerService.create({
+      database,
+      logger,
+      rootLifecycle,
+    });
+
+    httpRouter.use(
+      await createRouter({
+        scheduler: schedulerService,
+      }),
+    );
+    return schedulerService;
   },
 });
