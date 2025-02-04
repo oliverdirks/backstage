@@ -157,9 +157,7 @@ export class PluginTaskSchedulerImpl implements SchedulerService {
           tasks.push({
             ...task,
             running: dbTaskRow.current_run_ticket !== null,
-            nextRunAt: new Date(
-              `${dbTaskRow.next_run_start_at}Z`,
-            ).toISOString(),
+            nextRunAt: new Date(`${dbTaskRow.next_run_start_at}`).toUTCString(),
           });
         } else {
           tasks.push(task);

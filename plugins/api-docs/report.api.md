@@ -123,6 +123,7 @@ export type DefaultApiExplorerPageProps = {
   actions?: TableProps<CatalogTableRow>['actions'];
   ownerPickerMode?: EntityOwnerPickerProps['mode'];
   pagination?: EntityListPagination;
+  headerChildren?: React_2.ReactNode;
 };
 
 // @public (undocumented)

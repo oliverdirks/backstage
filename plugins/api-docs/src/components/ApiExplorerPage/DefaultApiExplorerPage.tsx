@@ -64,6 +64,7 @@ export type DefaultApiExplorerPageProps = {
   actions?: TableProps<CatalogTableRow>['actions'];
   ownerPickerMode?: EntityOwnerPickerProps['mode'];
   pagination?: EntityListPagination;
+  headerChildren?: React.ReactNode;
 };
 
 /**
@@ -77,6 +78,7 @@ export const DefaultApiExplorerPage = (props: DefaultApiExplorerPageProps) => {
     actions,
     ownerPickerMode,
     pagination,
+    headerChildren,
   } = props;
 
   const configApi = useApi(configApiRef);
@@ -94,6 +96,7 @@ export const DefaultApiExplorerPage = (props: DefaultApiExplorerPageProps) => {
       title="APIs"
       subtitle={generatedSubtitle}
       pageTitleOverride="APIs"
+      headerChildren={headerChildren}
     >
       <Content>
         <ContentHeader title="">
