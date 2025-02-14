@@ -5,6 +5,7 @@
 ```ts
 import { BasicPermission } from '@backstage/plugin-permission-common';
 import { JsonValue } from '@backstage/types';
+import { SchedulerServiceTaskDescriptor } from '@backstage/backend-plugin-api';
 
 // @public (undocumented)
 export type ConfigError = {
@@ -45,6 +46,12 @@ export const devToolsInfoReadPermission: BasicPermission;
 export const devToolsPermissions: BasicPermission[];
 
 // @public (undocumented)
+export const devToolsScheduledTasksReadPermission: BasicPermission;
+
+// @public (undocumented)
+export const devToolsScheduledTasksUpdatePermission: BasicPermission;
+
+// @public (undocumented)
 export type Endpoint = {
   name: string;
   type: string;
@@ -72,5 +79,16 @@ export enum ExternalDependencyStatus {
 export type PackageDependency = {
   name: string;
   versions: string;
+};
+
+// @public (undocumented)
+export type ScheduledTask = SchedulerServiceTaskDescriptor & {
+  pluginId: string;
+};
+
+// @public (undocumented)
+export type ScheduledTaskPluginConfig = {
+  plugin: string;
+  tasks?: string[];
 };
 ```

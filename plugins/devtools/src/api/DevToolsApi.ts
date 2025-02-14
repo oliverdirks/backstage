@@ -31,5 +31,9 @@ export interface DevToolsApi {
   getExternalDependencies(): Promise<ExternalDependency[] | undefined>;
   getInfo(): Promise<DevToolsInfo | undefined>;
   getScheduledTasks(): Promise<ScheduledTask[] | undefined>;
+  getScheduledTask(
+    pluginId: string,
+    taskId: string,
+  ): Promise<ScheduledTask | undefined>;
   triggerScheduledTask(pluginId: string, taskId: string): Promise<void>;
 }

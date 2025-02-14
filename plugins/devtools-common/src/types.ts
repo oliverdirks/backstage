@@ -23,6 +23,7 @@ export type ScheduledTaskPluginConfig = {
   tasks?: string[];
 };
 
+/** @public */
 export type ScheduledTask = SchedulerServiceTaskDescriptor & {
   pluginId: string;
 };

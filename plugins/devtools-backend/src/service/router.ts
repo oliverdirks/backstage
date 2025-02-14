@@ -141,6 +141,28 @@ export async function createRouter(
     response.status(200).json(scheduledTasks);
   });
 
+  router.get(
+    '/scheduled-tasks/plugin/:pluginId/task/:taskId',
+    async (req, response) => {
+      const decision = (
+        await permissions.authorize(
+          [{ permission: devToolsScheduledTasksReadPermission }],
+          { credentials: await httpAuth.credentials(req) },
+        )
+      )[0];
+      if (decision.result === AuthorizeResult.DENY) {
+        throw new NotAllowedError('Unauthorized');
+      }
+
+      const scheduledTask = await devToolsBackendApi.getScheduledTask(
+        req.params.pluginId,
+        req.params.taskId,
+      );
+
+      response.status(200).json(scheduledTask);
+    },
+  );
+
   router.post(
     '/scheduled-tasks/plugin/:pluginId/task/:taskId',
     async (req, response) => {

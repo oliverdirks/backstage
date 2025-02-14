@@ -68,6 +68,16 @@ export class DevToolsClient implements DevToolsApi {
     return scheduledTasks;
   }
 
+  getScheduledTask(
+    pluginId: string,
+    taskId: string,
+  ): Promise<ScheduledTask | undefined> {
+    const urlSegment = `scheduled-tasks/plugin/${pluginId}/task/${taskId}`;
+
+    const scheduledTask = this.get<ScheduledTask | undefined>(urlSegment);
+    return scheduledTask;
+  }
+
   triggerScheduledTask(pluginId: string, taskId: string): Promise<void> {
     const urlSegment = `scheduled-tasks/plugin/${pluginId}/task/${taskId}`;
 

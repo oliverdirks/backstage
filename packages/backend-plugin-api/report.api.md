@@ -610,6 +610,8 @@ export interface SchedulerService {
 export type SchedulerServiceTaskDescriptor = {
   id: string;
   scope: 'global' | 'local';
+  nextRunAt?: string;
+  running?: boolean;
   settings: {
     version: number;
   } & JsonObject;
